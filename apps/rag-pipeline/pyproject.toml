@@ -12,6 +12,7 @@ dependencies = [
     "openai>=2.29.0",
     "protobuf>=6.33.6",
     "qdrant-client>=1.16.1",
+    "sentence-transformers>=5.1.2",
     "sentencepiece>=0.2.1",
     "supabase>=2.28.3",
     "torch>=2.8.0",
