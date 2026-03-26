@@ -10,7 +10,7 @@ batch_size=20
 def transcribe_video(video_id):
     data = []
     transcript = YouTubeTranscriptApi()
-    fetched_transcript = transcript.fetch(video_id)
+    fetched_transcript = transcript.fetch(video_id, languages=["en", "hi"])
 
     for snippet in fetched_transcript:
        data.append({
@@ -24,7 +24,11 @@ def transcribe_video(video_id):
     print("snippet count", len(fetched_transcript))
     print("total data length", len(data))
 
-    return data
+    lang = fetched_transcript.language_code
+
+    print("language: ", lang)
+
+    return data, lang
 
     # this is for translating hindi transcripts
     
