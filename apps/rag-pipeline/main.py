@@ -6,14 +6,17 @@ from actions.embed import embed_chunks
 batch = []
 
 def main():
-    transcript_data, language = transcribe_video("aircAruvnKk")
+
+    video_id = "aircAruvnKk"
+
+    transcript_data, language = transcribe_video(video_id)
 
     if language == "en":
         print("VIDEO LANGUAGE DETECTED: ENGLISH")
         chunks = chunk_transcript(transcript_data, 200, 0.2)
-        embed_chunks(chunks)
+        embed_chunks(chunks, video_id, original_lang="en", source="youtube", is_translated=False)
     
-    if language == "hi":
+    elif language == "hi":
         print("VIDEO LANGUAGE DETECTED: HINDI")
         # translate to eng then chunk the transcript
         translated_texts = []
@@ -32,7 +35,7 @@ def main():
             snippet["text"] = translated_texts[i]
 
         chunks = chunk_transcript(transcript_data, 200, 0.2)
-        embed_chunks(chunks)
+        embed_chunks(chunks, video_id, original_lang="hi", source="youtube", is_translated=True)
 
 if __name__ == "__main__":
     main()
