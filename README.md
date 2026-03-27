@@ -1,159 +1,166 @@
-# Turborepo starter
+# RAG-Youtube-Chatapp - Methodology
+![Python](https://img.shields.io/badge/Python-3.14.3-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-green) ![Next.js](https://img.shields.io/badge/Next.js-Frontend-black) ![Qdrant](https://img.shields.io/badge/Qdrant-VectorDB-red) ![SentenceTransformers](https://img.shields.io/badge/SentenceTransformers-Embeddings-orange) ![Gemini](https://img.shields.io/badge/Gemini-2.5-flash-purple) ![RAG](https://img.shields.io/badge/RAG-Retrieval%20Augmented%20Generation-yellow) ![License](https://img.shields.io/badge/License-MIT-lightgrey) ![Google Deep Translate](https://img.shields.io/badge/Translation-Google%20Deep%20Translate-blue)
 
-This Turborepo starter is maintained by the Turborepo core team.
+## Source Material
 
-## Using this example
+The dataset for this project consisted of four YouTube videos provided in the assignment, covering machine learning, neural networks, and transformers. Two videos were in English and two in Hindi.
 
-Run the following command:
+1. **3Blue1Brown — *But what is a Neural Network?***
+   [https://youtube.com/watch?v=aircAruvnKk](https://youtube.com/watch?v=aircAruvnKk)
 
-```sh
-npx create-turbo@latest
+2. **3Blue1Brown — *Transformers, the tech behind LLMs***
+   [https://youtube.com/watch?v=wjZofJX0v4M](https://youtube.com/watch?v=wjZofJX0v4M)
+
+3. **CampusX — *What is Deep Learning?* (Hindi)**
+   [https://youtube.com/watch?v=fHF22Wxuyw4](https://youtube.com/watch?v=fHF22Wxuyw4)
+
+4. **CodeWithHarry — *All About Machine Learning & Deep Learning* (Hindi)**
+   [https://youtube.com/watch?v=C6YtPJxNULA](https://youtube.com/watch?v=C6YtPJxNULA)
+
+These videos were selected because they explain core machine learning concepts in detail and contain clear educational explanations suitable for building a retrieval-based QA system.
+
+---
+
+## Transcript Extraction
+
+Transcripts were obtained using the **youtube-transcript-api**.
+
+For the English videos, transcript retrieval was straightforward. However, the Hindi videos required additional processing because the transcripts were provided in **pure Hindi Devanagari script**.
+
+To standardize the dataset, the Hindi transcripts were translated into English. Initially, a smaller translation model (`Helsinki-NLP/opus-mt-hi-en`) was tested locally, but the translations were often inaccurate and contained phonetic approximations or garbled outputs.
+
+Therefore, the translation pipeline was replaced with **Google Deep Translate**, which produced significantly more reliable English translations.
+
+### Why Translation Was Necessary
+
+While it would have been possible to embed the Hindi transcripts directly, doing so would introduce a **cross-language retrieval problem**. Most user queries are expected to be in English, and embedding English queries against Hindi text embeddings can reduce semantic similarity performance.
+
+To avoid this mismatch and improve retrieval quality, all transcripts were converted into **English before embedding**, ensuring that both stored documents and user queries exist in the same semantic space.
+
+---
+
+## Chunking Strategy
+
+The transcripts were segmented into smaller chunks before being embedded and stored in the vector database.
+
+This step was necessary because the videos ranged from approximately **15 minutes to 1 hour**, producing very large transcripts. Embedding an entire transcript at once would be inefficient and memory-intensive.
+
+A chunking function was implemented that splits the transcripts based on **word count**, with a chunk size of **approximately 200 words**, which provided a good balance between:
+
+* semantic coherence
+* embedding efficiency
+* retrieval precision
+
+Each chunk was then individually embedded and inserted into the vector database.
+
+---
+
+## Embedding Model
+
+The embedding model used was:
+
+**all-MiniLM-L6-v2**
+
+This is a lightweight **Sentence Transformer model** that provides strong performance for semantic similarity tasks while remaining computationally efficient.
+
+Each transcript chunk was converted into a vector embedding using this model before being stored in the vector database.
+
+---
+
+## Vector Database
+
+The vector database used in this project was **Qdrant**.
+
+All transcript embeddings were stored in a collection named:
+
+`yt-transcripts`
+
+Each stored vector included a detailed payload containing metadata associated with the transcript segment.
+
+### Payload Structure
+
+```
+{
+  "payload": {
+    "text": chunk["text"],
+    "start_time": chunk["start_time"],
+    "end_time": chunk["end_time"],
+    "video_id": video_id,
+    "source": source,
+    "original_lang": original_lang,
+    "is_translated": is_translated
+  }
+}
 ```
 
-## What's inside?
+Each record also included:
 
-This Turborepo includes the following packages/apps:
+* the **vector embedding**
+* a **unique UUID identifier**
 
-### Apps and Packages
+This metadata allowed the system to trace answers back to specific videos and timestamps.
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+---
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## Retrieval Process
 
-### Utilities
+When a user submits a query:
 
-This Turborepo has some additional tools already setup for you:
+1. The query text is first converted into an embedding using the same embedding model (`all-MiniLM-L6-v2`).
+2. The embedding is used to search the **Qdrant vector database**.
+3. The system retrieves the **Top-K most similar transcript chunks** based on cosine similarity.
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+These retrieved chunks serve as the **context for the language model**.
 
-### Build
+---
 
-To build all apps and packages, run the following command:
+## Language Model for Answer Generation
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+For generating final responses, the system uses:
 
-```sh
-cd my-turborepo
-turbo build
+**Gemini 2.5 Flash**
+
+The retrieved transcript chunks are provided to the model as context, allowing it to produce a **grounded answer based on the source material**.
+
+This approach ensures that answers are derived from the retrieved content rather than from general model knowledge.
+
+---
+
+## API Layer
+
+The backend is implemented using **FastAPI**.
+
+A single primary endpoint handles queries:
+
+`POST /api/query`
+
+The request body accepts JSON input:
+
+```
+{
+  "user_query": "..."
+}
 ```
 
-Without global `turbo`, use your package manager:
+The endpoint performs:
 
-```sh
-cd my-turborepo
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
+1. Query embedding
+2. Vector search in Qdrant
+3. Context retrieval
+4. LLM answer generation
+5. Response formatting with source references
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Frontend Interface
 
-```sh
-turbo build --filter=docs
-```
+The frontend is implemented using **Next.js with shadcn/ui components**.
 
-Without global `turbo`:
+The interface consists of a simple chat-style screen where:
 
-```sh
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+* Users submit questions
+* The RAG assistant generates answers
+* Responses include **source citations with timestamps**
+* Relevant **YouTube video cards** are displayed below the answer for verification
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+This allows users to quickly navigate to the exact portion of the source video used to generate the response.
