@@ -1,5 +1,5 @@
 {
-  "name": "livo-assitant-tha",
+  "name": "rag-yt-bot",
   "private": true,
   "scripts": {
     "build": "turbo run build",

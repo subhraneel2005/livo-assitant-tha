@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from actions.embed import user_query_embed
 from config.logger import logger
+from actions.llm_answer import get_llm_response, build_context_str
 
 router = APIRouter(prefix="/api", tags=["Rag"])
 
@@ -15,17 +16,12 @@ async def query(payload: QueryPayload):
         logger.info(f"user query: {user_query}")
         results = user_query_embed(user_query)
         logger.info("top k results retieved")
+       
+        context = build_context_str(results.points)
+        logger.info(f"----------------RESULTS--------------: {results.points}")
+        llm_response = get_llm_response(context, query=user_query)
 
-        for r in results.points:
-            payload = r.payload
-            logger.info(
-                f"score={r.score} | "
-                f"video_id={payload.get('video_id')} | "
-                f"start={payload.get('start_time')} | "
-                f"end={payload.get('end_time')} | "
-                f"text={payload.get('text')}"
-            )
-        return results
+        return llm_response
 
     except Exception as e:
         logger.error(f"Error at /query: ${e}")
