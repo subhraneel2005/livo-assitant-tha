@@ -124,6 +124,12 @@ The retrieved transcript chunks are provided to the model as context, allowing i
 
 This approach ensures that answers are derived from the retrieved content rather than from general model knowledge.
 
+### Some Chats with the bot
+![QA1](apps/web/public/qa1.png) 
+![QA2](apps/web/public/qa2.png) 
+![QA3](apps/web/public/qa3.png) 
+![QA4](apps/web/public/qa4.png)
+
 ---
 
 ## API Layer
