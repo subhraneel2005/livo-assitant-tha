@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans"
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 
 
 
 export const metadata: Metadata = {
-  title: "QA-yt chatapp",
-  description: "Chat with youtube videos using robust rag pipeline",
+  title: "RAG Yt Chatapp",
+  description: "Chat with youtube lectures around AI",
 };
 
 export default function RootLayout({

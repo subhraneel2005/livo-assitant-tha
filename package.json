@@ -20,5 +20,11 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "framer-motion": "^12.38.0",
+    "geist": "^1.7.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  }
 }

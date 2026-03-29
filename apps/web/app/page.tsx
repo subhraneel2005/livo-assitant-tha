@@ -1,10 +1,8 @@
-import ChatScreen from '@/components/screens/chat'
-import React from 'react'
+import ChatScreen from "@/components/screens/chat";
+import Image from "next/image";
 
 export default function Home() {
   return (
-    <div>
-      <ChatScreen/>
-    </div>
-  )
+    <ChatScreen/>
+  );
 }

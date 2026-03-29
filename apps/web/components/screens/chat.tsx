@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import RagSources from "../rag-sources";
-import FormattedAnswer from "../formatted-answer";
 import AnswerRenderer from "../answer-renderer";
 
 type Message = {
@@ -14,35 +14,14 @@ type Message = {
   content: string;
 };
 
-export default function ChatScreen() {
+interface ChatScreenProps {
+  onBack?: () => void;
+}
+
+export default function ChatScreen({ onBack }: ChatScreenProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-
-  function parseResponse(text: string) {
-    const clean = text.replace(/\\n/g, "\n");
-
-    const citationRegex =
-      /\[source:\s*([^\|]+)\|\s*([^\|]+)\|\s*(https:\/\/youtube\.com[^\]]+)\]/g;
-
-    const withHover = clean.replace(
-      citationRegex,
-      (_, videoId, timestamp, url) => {
-        return `
-        <span class="underline cursor-pointer" data-video="${videoId}" data-url="${url}" data-time="${timestamp}">
-          ${videoId} ${timestamp}
-        </span>
-        `;
-      },
-    );
-
-    const linked = withHover.replace(
-      /(https:\/\/youtube\.com[^\s\]]+)/g,
-      '<a href="$1" target="_blank" class="underline">$1</a>',
-    );
-
-    return linked;
-  }
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -66,8 +45,6 @@ export default function ChatScreen() {
 
       const data = await res.text();
 
-      const parsed = parseResponse(data);
-
       setMessages((m) => [
         ...m,
         {
@@ -88,48 +65,103 @@ export default function ChatScreen() {
     setLoading(false);
   }
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   return (
-    <main className="min-h-screen w-full flex justify-center">
-      <div className="w-full max-w-4xl flex flex-col h-screen">
-        <ScrollArea className="flex-1 p-6">
-          <div className="flex flex-col gap-4">
-            {messages.map((m, i) => (
-              <Card
-                key={i}
-                className={`p-4 whitespace-pre-wrap ${
-                  m.role === "user" ? "self-end" : "self-start"
-                }`}
-              >
-                {m.role === "assistant" ? (
-                  <>
-                    <>
-                      {/* <FormattedAnswer text={m.content} /> */}
-                      <AnswerRenderer text={m.content} />
-                      <RagSources text={m.content} />
-                    </>
-                  </>
-                ) : (
-                  m.content
-                )}
-              </Card>
-            ))}
+    <main className="min-h-screen w-full flex flex-col">
+      <header className="border-b px-6 py-3 flex items-center gap-4">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-secondary rounded-md transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        )}
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-sm">QA Chat</span>
+        </div>
+      </header>
 
-            {loading && <Card className="p-4">Thinking...</Card>}
-          </div>
-        </ScrollArea>
+      <ScrollArea className="flex-1">
+        <div className="max-w-3xl mx-auto px-6 py-8">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+              <p className="text-muted-foreground text-sm mb-2">
+                No messages yet
+              </p>
+              <p className="text-muted-foreground text-xs">
+                Ask a question about your videos above
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6">
+              <AnimatePresence>
+                {messages.map((m, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[85%] ${m.role === "user" ? "text-right" : "text-left"}`}
+                    >
+                      {m.role === "user" ? (
+                        <div className="inline-block px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm">
+                          {m.content}
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <AnswerRenderer text={m.content.split(/sources/i)[0]} />
+                          <RagSources text={m.content} />
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
-        <div className="border-t p-4 flex gap-2">
+              {loading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex justify-start"
+                >
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Thinking...</span>
+                  </div>
+                </motion.div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      <div className="border-t px-6 py-4">
+        <div className="max-w-3xl mx-auto flex gap-3">
           <Input
-            placeholder="Ask about the videos..."
+            placeholder="Ask a question..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleSearch();
             }}
+            className="h-10"
           />
-
-          <Button onClick={handleSearch} disabled={loading}>
-            Ask
+          <Button
+            onClick={handleSearch}
+            disabled={loading || !query.trim()}
+            size="sm"
+            className="h-10 px-4"
+          >
+            <Send className="w-4 h-4" />
           </Button>
         </div>
       </div>

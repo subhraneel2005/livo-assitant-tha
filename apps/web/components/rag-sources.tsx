@@ -44,21 +44,24 @@ export default function RagSources({ text }: { text: string }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-2 justify-center items-center">
       {sources.map((s, i) => (    
-          <Card key={i} className="p-3 flex flex-col gap-2 w-full max-w-sm bg-card">
-            <div className="flex justify-between text-sm">
-              <div>{s.videoId}</div>
-
-              <a href={s.url} target="_blank" className="underline">
-                {s.timestamp}
-              </a>
-            </div>
-
-            <iframe
-              className="w-90 h-50 rounded"
-              src={getEmbed(s.url)}
-              allowFullScreen
-            />
-          </Card>
+          <Card
+          key={i}
+          className="p-2 flex flex-col gap-2 w-full max-w-[360px] bg-card"
+        >
+          <div className="flex justify-between text-xs">
+            <div>{s.videoId}</div>
+        
+            <a href={s.url} target="_blank" className="underline">
+              {s.timestamp}
+            </a>
+          </div>
+        
+          <iframe
+            className="w-full aspect-video rounded"
+            src={getEmbed(s.url)}
+            allowFullScreen
+          />
+        </Card>
       ))}
       </div>
     </div>
