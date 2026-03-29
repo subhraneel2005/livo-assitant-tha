@@ -28,7 +28,7 @@ async def query(payload: QueryPayload):
         raise
 
 
-@router.get("/status")
+@router.get("/health")
 async def status():
     return {
         "status": "ok"
