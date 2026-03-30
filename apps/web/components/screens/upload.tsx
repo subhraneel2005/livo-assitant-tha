@@ -62,7 +62,7 @@ export default function UploadVideos() {
             }}
           />
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Embedding in process..." : "Embed video"}
+            {loading ? "Embedding in process..." : "Embedd video"}
           </Button>
         </div>
 
