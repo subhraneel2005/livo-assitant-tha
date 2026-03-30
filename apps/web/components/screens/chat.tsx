@@ -21,7 +21,7 @@ interface ChatScreenProps {
 export default function ChatScreen({ onBack }: ChatScreenProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setisLoading] = useState(false);
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -30,7 +30,7 @@ export default function ChatScreen({ onBack }: ChatScreenProps) {
 
     setMessages((m) => [...m, userMsg]);
     setQuery("");
-    setLoading(true);
+    setisLoading(true);
 
     try {
       const res = await fetch("http://localhost:8000/api/query", {
@@ -62,7 +62,7 @@ export default function ChatScreen({ onBack }: ChatScreenProps) {
       ]);
     }
 
-    setLoading(false);
+    setisLoading(false);
   }
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -126,7 +126,7 @@ export default function ChatScreen({ onBack }: ChatScreenProps) {
                 ))}
               </AnimatePresence>
 
-              {loading && (
+              {isLoading && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -157,7 +157,7 @@ export default function ChatScreen({ onBack }: ChatScreenProps) {
           />
           <Button
             onClick={handleSearch}
-            disabled={loading || !query.trim()}
+            disabled={isLoading || !query.trim()}
             size="sm"
             className="h-10 px-4"
           >
